@@ -1,0 +1,14 @@
+---
+# Install Hadoop
+# This can be used to safely reinstall or update hadoop packages and config files.
+# If Hadoop is already running, you should stop it before running this.
+# To initialize HDFS, see init-hdfs.yml. 
+- hosts: hadoop
+  sudo: True
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+  - include: tasks/install-pkgs.yml tags=pkgs
+  - include: tasks/make-dirs.yml
+  - include: tasks/copy-config.yml tags=config

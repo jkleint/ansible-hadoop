@@ -1,0 +1,179 @@
+Installing Hadoop With Ansible
+==============================
+:author: John Kleint
+:email: First initial. Last name. Gmail.
+:date: 2012 Oct 18
+
+This is a collection of http://ansible.cc[Ansible] playbooks and templates to
+install, configure, and manage https://hadoop.apache.org/[Hadoop] on a cluster.
+
+Prerequisites
+-------------
+This is designed to install http://www.cloudera.com/[Cloudera]'s Distribution
+of Hadoop version 4 (CDH4) on Red Hat (or CentOS) Linux 5 or later.  It only
+installs HDFS and YARN (a.k.a. MRv2); it does not install MRv1.  It requires
+Ansible 0.7 or later.
+
+This assumes you have Ansbile set up and working on your cluster. The playbooks
+are designed to use sudo, so you do not need remote root access.  You will need
+to be able to sudo to the `hdfs` user, not just root.  You do not need
+passwordless SSH (but it helps).
+
+It is assumed you have configured yum to use the CDH4 repository, or created
+your own local repository, on each node, as described here:
+
+https://ccp.cloudera.com/display/CDH4DOC/CDH4+Installation
+
+You can use Ansible to add the CDH4 repository to your yum configuration on the
+whole cluster with something like this:
+
+    $ ansible hadoop -m copy -a 'src=cloudera-cdh4.repo dest=/etc/yum.repos.d/cloudera-cdh4.repo user=root group=root mode=0644' -K -f33
+
+In what follows, we assume you can log in to the cluster using ssh-agent and
+require a password to use sudo.  If you need a password for SSH itself (not
+sudo), you can add `-k` (lower case).  If you don't need a sudo password, you
+can change the `-K` (upper case) to `-s`.  If you're logging in as root
+remotely, you can leave off the `-K`.  The `-f33` makes 33 SSH connections at a
+time; you can adjust this for the number of nodes in your cluster.
+
+Finally, we assume you have a suitable version of Java installed on your
+cluster.  If not, have a look at the included `install-java.yml` playbook,
+which removes OpenJDK and GCJ (and anything dependent on them!) and installs
+Oracle JDK from a local RPM on each machine (NFS works fine).  Run it like
+this:
+
+    $ ansible-playbook install-java.yml -K -f33
+
+Configure
+---------
+You will need to add some groups to your Ansible host inventory and set some
+variables to tailor the install for your cluster.
+
+Your Ansible inventory will need a host group called `hadoop` with two child
+groups: `hadoop-nodes` for the data/mapreduce nodes and `hadoop-clients` for
+machines that will submit mapreduce jobs.  The `hadoop` group needs three
+variables called `namenode`, `resource_manager`, and `history_server` giving
+the machine name(s) filling those roles.  These scripts do not install a
+secondary namenode (though it should be straightforward to add). Here is an
+example:
+
+----
+# Example Ansible hosts inventory for Hadoop.
+
+master
+
+[workstations]
+work1
+work2
+
+[cluster]
+c00
+c02
+c02
+c03
+
+[hadoop-nodes:children]
+cluster
+
+[hadoop-clients:children]
+workstations
+
+[hadoop]
+master
+
+[hadoop:children]
+hadoop-clients
+hadoop-nodes
+
+[hadoop:vars]
+namenode=master
+resource_manager=master
+history_server=master
+----
+
+Edit `vars/main.yml` to set the paths for Hadoop configuration files and
+namenode, datanode, and nodemanager data.  You may want to reference
+Cloudera's recommendations for deploying Hadoop:
+
+https://ccp.cloudera.com/display/CDH4DOC/Deploying+CDH4+on+a+Cluster
+
+Note that if you try to put HDFS and YARN (or namenode) data under a common
+directory, such as `/data/hadoop/hdfs` and `/data/hadoop/yarn`, you will get
+permissions issues, as `/data/hadoop` will be created to be traversable only by
+user `hdfs`.  (If you want, you can accomodate this manually with something
+like `chgrp hadoop <dir>` and `chmod g+x <dir>` on the common parent
+directories.)
+
+Edit the `users` variable in `vars/main.yml` to have HDFS user directories
+created for each username in the list.
+
+You will probably want to adjust the parameters in `templates/mapred-site.xml`
+and `templates/yarn-site.xml` for your cluster.
+
+Install
+-------
+To install the packages and create paths:
+
+    $ ansible-playbook install.yml -K -f33
+
+This can safely be used to update packages to a new point release (though you
+should read the release notes first!).  To expedite this process, the package
+install commands are tagged with `pkgs`, so to just upgrade packages, you can
+do:
+
+    $ ansible-playbook install.yml -K -f33 --tags=pkgs
+
+You may need to set `$HADOOP_MAPRED_HOME` to `/usr/lib/hadoop-mapreduce` on
+mapreduce client machines (but not cluster nodes), and possibly `$JAVA_HOME`
+as well.
+
+Initialize HDFS
+---------------
+
+    $ ansible-playbook init-hdfs.yml -K -f33
+
+This script also starts HDFS. It will hang and do nothing if HDFS is already
+initialized.  To just re-create HDFS directories and permissions, you can rerun
+this script with the `noinit` tag to skip initialization.
+
+Configure Firewall
+------------------
+If your cluster is running iptables, you will need to open ports for Hadoop.
+The configuration tries to fix and consolidate the ports used; most Hadoop
+services are therefore on non-standard ports.  In particular, the HDFS and YARN
+web UIs run on ports 8021 and 8026, respectively.  Unfortunately, YARN uses
+several random ports for IPC, and the only solution is to open all high ports
+between cluster nodes.  
+
+A minimal example iptables configuration is provided in `templates/iptables`;
+it can be used for both master and worker nodes.  You likely do not want to use
+it on clients.  Using it directly will overwrite any existing firewall
+configuration, so you will want to merge it with your existing firewall rules.
+Ansible can be used to apply the merged firewall rules with something like:
+
+    $ ansible master:hadoop-nodes -m template -a 'src=templates/iptables dest=/etc/sysconfig/iptables' -K -f33
+    $ ansbile master:hadoop-nodes -m service -a 'name=iptables status=restarted' -K -f33
+
+It is worth noting that some Hadoop services seem to use IPv6 by default, so
+you may want to disable IPv6 to simplify things.
+
+Start and Stop Hadoop
+---------------------
+To start, stop, or restart HDFS and mapreduce on the cluster:
+
+    $ ansible-playbook start.yml   -K -f33
+    $ ansible-playbook stop.yml    -K -f33
+    $ ansible-playbook restart.yml -K -f33
+
+Update Configuration
+--------------------
+As you tune Hadoop, you will find yourself updating the configuration files in
+the `templates/` directory often.  These are actually
+http://jinja.pocoo.org/docs/templates/[Jinja2] templates, with variables
+provided by Ansible.  You can run the `install.yml` playbook with the `config`
+tag to just update these configuration files on the cluster quickly. 
+
+Feedback
+--------
+You can provide feedback on and get (or contribute!) the latest version of
+these scripts at https://github.com/jkleint/ansible-hadoop.

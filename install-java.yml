@@ -1,0 +1,26 @@
+---
+# Remove OpenJDK and GCJ; Install Oracle JDK.
+# NOTE: Removing OpenJDK will remove anything depending on it as well.
+- hosts: hadoop
+  sudo: True
+  vars:
+    jdk_rpm: /shared/rpms/local/jdk-7u*-linux-x64.rpm
+
+  tasks:
+  - name: Install Oracle JDK 7  # yum install doesn't find it for some reason
+    action: shell yum -y --nogpgcheck localinstall $jdk_rpm
+    tags: noremove
+
+  - name: Update alternatives
+    action: | 
+      shell
+      /usr/sbin/alternatives --install /usr/bin/java java /usr/java/latest/bin/java 20000 &&
+      /usr/sbin/alternatives --install /usr/bin/javac javac /usr/java/latest/bin/javac 20000 &&
+      /usr/sbin/alternatives --install /usr/bin/jar jar /usr/java/latest/bin/jar 20000
+    tags: noremove
+
+  - name: Remove OpenJDK
+    action: yum pkg=java-1.6.0-openjdk state=removed
+
+  - name: Remove GCJ
+    action: yum pkg=java-1.4.2-gcj-compat state=removed

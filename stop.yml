@@ -1,0 +1,10 @@
+---
+# Stop Hadoop.
+- hosts: hadoop
+  sudo: True
+  vars_files:
+  - vars/main.yml
+
+  tasks:
+  - include: tasks/stop-mapred.yml
+  - include: tasks/stop-hdfs.yml

@@ -1,0 +1,30 @@
+---
+# Install the appropriate Hadoop packages for each node.
+- name: Update yum repos  # to prevent out-of-date errors later
+  action: shell yum clean expire-cache ; yum check-update ; true
+
+- name: Install namenode
+  action: yum pkg=hadoop-hdfs-namenode state=latest
+  only_if: '$is_namenode'
+
+- name: Install resouce manager
+  action: yum pkg=hadoop-yarn-resourcemanager state=latest
+  only_if: '$is_resource_manager'
+
+- name: Install history server
+  action: yum pkg=hadoop-mapreduce-historyserver state=latest
+  only_if: '$is_history_server'
+
+- name: Install $item to workers 
+  action: yum pkg=$item state=latest
+  only_if: '$is_worker'
+  with_items:
+  - hadoop-yarn-nodemanager 
+  - hadoop-hdfs-datanode 
+
+- name: Install hdfs and mapreduce libraries
+  action : yum pkg=$item state=latest
+  with_items: 
+  - hadoop
+  - hadoop-hdfs
+  - hadoop-mapreduce

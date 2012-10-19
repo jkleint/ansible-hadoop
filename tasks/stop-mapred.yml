@@ -1,0 +1,13 @@
+---
+# Stop MapReduce
+- name: Stop History Server
+  action: service name=hadoop-mapreduce-historyserver state=stopped
+  only_if: '$is_history_server'
+
+- name: Stop MapReduce on datanodes
+  action: service name=hadoop-yarn-nodemanager state=stopped
+  only_if: '$is_worker'
+
+- name: Stop Resource Manager
+  action: service name=hadoop-yarn-resourcemanager state=stopped
+  only_if: '$is_resource_manager'

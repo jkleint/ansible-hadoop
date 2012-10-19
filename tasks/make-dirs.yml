@@ -1,0 +1,21 @@
+---
+# Make Hadoop data and log directories.
+- name: Create dfs.namenode.name.dir on namenode
+  action: file dest=$item state=directory owner=hdfs group=hdfs mode=0700
+  only_if: '$is_namenode'
+  with_items: $dfs_namenode_name_dir
+
+- name: Create dfs.datanode.data.dir on datanodes
+  action: file dest=$item state=directory owner=hdfs group=hdfs mode=0700
+  only_if: '$is_worker'
+  with_items: $dfs_datanode_data_dir
+
+- name: Create yarn.nodemanager.local-dirs on yarn nodes
+  action: file dest=$item state=directory owner=yarn group=yarn mode=0755
+  only_if: '$is_worker'
+  with_items: $yarn_nodemanager_local_dirs
+
+- name: Create yarn.nodemanager.log-dirs on yarn nodes
+  action: file dest=$item state=directory owner=yarn group=yarn mode=0755
+  only_if: '$is_worker'
+  with_items: $yarn_nodemanager_log_dirs

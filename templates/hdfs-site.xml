@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+  <property>
+    <name>dfs.blocksize</name>
+    <value>268435456</value>
+  </property>
+  <property>
+    <name>dfs.namenode.handler.count</name>
+    <value>100</value>
+  </property>
+  <property>
+    <name>dfs.permissions.superusergroup</name>
+    <value>hadoop</value>
+  </property>
+  <property>
+    <name>dfs.namenode.http-address</name>
+    <value>0.0.0.0:8021</value>
+  </property>
+   <property>
+    <name>dfs.datanode.address</name>
+    <value>0.0.0.0:8029</value>
+  </property>
+  <property>
+    <name>dfs.datanode.http.address</name>
+    <value>0.0.0.0:8030</value>
+  </property>
+  <property>
+    <name>dfs.datanode.ipc.address</name>
+    <value>0.0.0.0:8031</value>
+  </property>
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>{{ dfs_namenode_name_dir | join(',') }}</value>
+  </property>
+  <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>{{ dfs_datanode_data_dir | join(',') }}</value>
+  </property>
+  <property>
+    <name>dfs.datanode.failed.volumes.tolerated</name>
+    <value>{{ dfs_namenode_name_dir | length - 1 }}</value>  <!-- Stop working after more than this many disks fail. -->
+  </property>
+</configuration>

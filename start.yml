@@ -1,0 +1,10 @@
+---
+# Start Hadoop.
+- hosts: hadoop
+  sudo: True
+  vars_files:
+  - vars/main.yml
+
+  tasks:
+  - include: tasks/start-hdfs.yml
+  - include: tasks/start-mapred.yml

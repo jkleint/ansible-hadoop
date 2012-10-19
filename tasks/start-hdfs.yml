@@ -1,0 +1,9 @@
+---
+# Start HDFS
+- name: Start HDFS on datanodes
+  action: service name=hadoop-hdfs-datanode state=started
+  only_if: '$is_worker'
+
+- name: Start HDFS on namenode
+  action: service name=hadoop-hdfs-namenode state=started
+  only_if: '$is_namenode'

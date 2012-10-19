@@ -1,0 +1,9 @@
+---
+# Stop HDFS.
+- name: Stop HDFS on namenode
+  action: service name=hadoop-hdfs-namenode state=stopped
+  only_if: '$is_namenode'
+
+- name: Stop HDFS on datanodes
+  action: service name=hadoop-hdfs-datanode state=stopped
+  only_if: '$is_worker'

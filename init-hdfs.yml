@@ -1,0 +1,51 @@
+---
+# Format HDFS and create tmp and user directories
+# This will timeout if HDFS has already been initialized.
+- hosts: hadoop
+  sudo: True
+  vars_files: 
+  - vars/main.yml
+
+  tasks:
+  - name: Initialize HDFS
+    action: command /sbin/service hadoop-hdfs-namenode init      # We use 'command' because the service module can't send init
+    only_if: '$is_namenode'
+
+  - include: tasks/start-hdfs.yml tags=noinit
+
+  - name: Create HDFS /tmp, /var, and /user dirs
+    only_if: '$is_namenode'
+    tags: noinit
+    action: >
+      command sudo -u hdfs hadoop fs -mkdir -p
+      /tmp
+      /tmp/hadoop-yarn
+      /tmp/hadoop-yarn/staging
+      /tmp/hadoop-yarn/staging/history
+      /var
+      /var/log
+      /var/log/hadoop-yarn
+      /var/log/hadoop-yarn/apps
+      /user/history
+    
+  - name: Set HDFS permissions
+    only_if: '$is_namenode'
+    tags: noinit
+    action: |
+      command sudo -u hdfs -- /bin/sh -c '
+      hadoop fs -chmod -R 1777 /tmp
+      hadoop fs -chown -R yarn /tmp/hadoop-yarn
+      hadoop fs -chmod -R 755 /var
+      hadoop fs -chown -R yarn:mapred /var/log/hadoop-yarn
+      hadoop fs -chmod -R 755 /user
+      hadoop fs -chmod 1777 /user/history'
+
+  - name: Create HDFS home dirs for users
+    only_if: '$is_namenode'
+    tags: noinit
+    with_items: $users
+    action: | 
+      command sudo -u hdfs -- /bin/sh -c '
+      hadoop fs -mkdir -p /user/$item 
+      hadoop fs -chown $item:$item /user/$item
+      hadoop fs -chmod -R 755 /user/$item'

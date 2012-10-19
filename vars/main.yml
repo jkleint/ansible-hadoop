@@ -1,0 +1,29 @@
+---
+# Hadoop users and paths.
+
+# HDFS home directories will be made for these users.
+users: [user01, user02]
+
+# Paths where Hadoop will store data.
+hadoop_conf_dir: /etc/hadoop/conf.ansible
+# You can run into permissions issues if the namenode, hdfs, or yarn share a common parent dir.
+# E.g., hdfs creates /data/hadoop hdfs:hdfs 700, but then yarn can't read /data/hadoop/yarn
+dfs_namenode_name_dir: 
+- /data/namenode
+- /shared/namenode
+dfs_datanode_data_dir:
+- /data1/hdfs
+- /data2/hdfs
+yarn_nodemanager_local_dirs:
+- /data1/yarn/local
+- /data2/yarn/local
+yarn_nodemanager_log_dirs:
+- /data1/yarn/logs
+- /data2/yarn/logs
+
+
+# Shouldn't need to change these.
+is_namenode: "'$ansible_hostname' == '$namenode'"
+is_resource_manager: "'$ansible_hostname' == '$resource_manager'"
+is_history_server: "'$ansible_hostname' == '$history_server'"
+is_worker: "'hadoop-nodes' in $group_names"

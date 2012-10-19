@@ -1,0 +1,37 @@
+# Minimal iptables firewall config for Hadoop.
+# As this will OVERWRITE any existing firewall configuration, you should merge
+# this with you existing config before applying it.
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:RH-Firewall-1-INPUT - [0:0]
+-A INPUT -j RH-Firewall-1-INPUT
+-A FORWARD -j RH-Firewall-1-INPUT
+-A RH-Firewall-1-INPUT -i lo -j ACCEPT
+-A RH-Firewall-1-INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+# ssh
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT
+# Replace 10.0.0.0/24 with your cluster network address (not domain!) and 10.0.1.0/24 with your client network address.
+{%- if ansible_hostname == namenode %}
+# Hadoop namenode
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --src 10.0.0.0/24 --dport 8020:8021 -j ACCEPT       
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --src 10.0.1.0/24 --dport 8020:8021 -j ACCEPT       
+{%- endif %}
+{%- if ansible_hostname == resource_manager %}
+# Hadoop resource manager
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --src 10.0.0.0/24 --dport 8022:8026 -j ACCEPT       
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --src 10.0.1.0/24 --dport 8022:8026 -j ACCEPT       
+{%- endif %}
+{%- if ansible_hostname == history_server %}
+# Hadoop history server
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --src 10.0.0.0/24 --dport 8027:8028 -j ACCEPT       
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --src 10.0.1.0/24 --dport 8027:8028 -j ACCEPT       
+{%- endif %}
+{%- if "hadoop-nodes" in group_names %}
+# Hadoop datanode and nodemanager
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --src 10.0.0.0/24 --dport 1024: -j ACCEPT
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -m multiport -p tcp --src 10.0.1.0/24 --dports 8029,8035:8040 -j ACCEPT
+{%- endif %}
+-A RH-Firewall-1-INPUT -j DROP 
+COMMIT

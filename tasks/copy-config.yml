@@ -1,0 +1,22 @@
+---
+# Copy Hadoop configuration files.
+- name: Make $hadoop_conf_dir
+  action: file dest=$hadoop_conf_dir state=directory owner=hdfs group=hadoop mode=0775
+
+- name: Set /etc/alternatives/hadoop link
+  action: file src=$hadoop_conf_dir dest=/etc/alternatives/hadoop-conf state=link
+
+- name: Set /etc/hadoop/conf link
+  action: file src=/etc/alternatives/hadoop-conf dest=/etc/hadoop/conf state=link
+
+- name: Copy config $item 
+  action: template src=templates/$item dest=/etc/hadoop/conf/$item owner=hdfs group=hadoop mode=0644
+  with_items:
+  - core-site.xml
+  - mapred-site.xml
+  - hdfs-site.xml
+  - yarn-site.xml
+  - yarn-env.sh
+  - hadoop-metrics2.properties
+  - hadoop-metrics.properties
+  - log4j.properties
