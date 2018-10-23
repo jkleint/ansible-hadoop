@@ -1,13 +1,13 @@
-=== This repository is old and unmaintained.  
-There are many good options for installing Hadoop with Ansible at Ansible Galaxy:
+= This repository is old and unmaintained.  
 
-https://galaxy.ansible.com/list#/roles?page=1&page_size=10&autocomplete=hadoop
+== Find Hadoop playbooks at Ansible Galaxy:
 
+https://galaxy.ansible.com/search?keywords=hadoop&order_by=-relevance&page_size=10
+
+---
 
 Installing Hadoop With Ansible
 ==============================
-:author: John Kleint
-:email: First initial. Last name. Gmail.
 :date: 2012 Oct 18
 
 This is a collection of http://ansible.cc[Ansible] playbooks and templates to
